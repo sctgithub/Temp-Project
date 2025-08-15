@@ -1,0 +1,42 @@
+name: Populate Kanban from Markdown
+
+on:
+  push:
+    paths:
+      - "tasks/*.md"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  projects: write   # required for Projects (v2) GraphQL mutations
+
+jobs:
+  create-cards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        run: npm install gray-matter @actions/github @actions/core
+
+      - name: Populate Project from Markdown
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Project ownership & identity
+          OWNER: my-org-or-username              # <-- change this
+          PROJECT_NUMBER: 1                      # <-- change this (Projects v2 number)
+
+          # Optional: customize the field name for the select list
+          STATUS_FIELD_NAME: Status
+
+          # Where your .md files live
+          TASKS_DIR: tasks
+        run: node .github/scripts/populate-kanban.js
