@@ -5,11 +5,13 @@ on:
     paths:
       - "tasks/*.md"
 
+# NOTE: These permissions only affect GITHUB_TOKEN, which we are NOT using for Projects v2.
+# Keep them minimal; the PAT we pass via env handles the real work.
 permissions:
   contents: read
   issues: write
   pull-requests: write
-  projects: write
+  # repository-projects: read   # (optional) classic projects only; not needed for Projects v2
 
 jobs:
   create-cards:
@@ -28,11 +30,13 @@ jobs:
 
       - name: Populate Project from Markdown
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use a PERSONAL ACCESS TOKEN (PAT) or a GitHub App token.
+          # PAT scopes (classic): repo, project
+          # Fine-grained PAT: Projects (Read & write) + repo access
+          PROJECTS_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
 
-          # 👇 Change these to match your setup
           OWNER: sctgithub              # org or username that owns the Project v2
-          PROJECT_NUMBER: 1             # the visible project number in the UI
-          STATUS_FIELD_NAME: Status     # the single-select field that powers board columns
-          TASKS_DIR: tasks              # folder holding your .md tasks
+          PROJECT_NUMBER: 1             # project number from the URL
+          STATUS_FIELD_NAME: Status     # single-select field that powers columns
+          TASKS_DIR: tasks
         run: node .github/scripts/populate-kanban.js
