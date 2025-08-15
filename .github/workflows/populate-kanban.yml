@@ -9,7 +9,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
-  projects: write   # required for Projects (v2) GraphQL mutations
+  projects: write
 
 jobs:
   create-cards:
@@ -30,13 +30,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Project ownership & identity
-          OWNER: my-org-or-username              # <-- change this
-          PROJECT_NUMBER: 1                      # <-- change this (Projects v2 number)
-
-          # Optional: customize the field name for the select list
-          STATUS_FIELD_NAME: Status
-
-          # Where your .md files live
-          TASKS_DIR: tasks
+          # 👇 Change these to match your setup
+          OWNER: sctgithub              # org or username that owns the Project v2
+          PROJECT_NUMBER: 1             # the visible project number in the UI
+          STATUS_FIELD_NAME: Status     # the single-select field that powers board columns
+          TASKS_DIR: tasks              # folder holding your .md tasks
         run: node .github/scripts/populate-kanban.js
