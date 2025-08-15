@@ -5,5 +5,5 @@ status: "In Progress"   # must match a Status option in your Project (e.g., To D
 ---
 
 Detailed notes here…
-[] checklist
-[] checklist 1
+- checklist
+- checklist 1
