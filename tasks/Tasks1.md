@@ -2,7 +2,7 @@
 title: "Implement OAuth login"
 description: "Add Google + GitHub login"
 status: "Backlog"               # must match a Status option in your Project
-assignees: ["octocat", "alice"]
+assignees: ["sctgithub"]
 labels: ["auth", "P1"]
 priority: "High"                # single-select in Project
 size: "M"                       # single-select in Project
