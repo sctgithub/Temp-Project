@@ -16,6 +16,10 @@ assignees:
 labels:
   - auth
   - P1
+priority: P0
+relationships:
+comments: |
+  - my first comment
 ---
 
 body text
