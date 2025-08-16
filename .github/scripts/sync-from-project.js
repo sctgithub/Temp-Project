@@ -91,6 +91,41 @@ async function getAllProjectItems(projectId) {
   return items;
 }
 
+// Pagination for issue comments
+async function listAllIssueComments(octokit, { owner, repo, issue_number }) {
+  const all = [];
+  let page = 1;
+  while (true) {
+    const { data } = await octokit.rest.issues.listComments({
+      owner, repo, issue_number, per_page: 100, page
+    });
+    all.push(...data);
+    if (data.length < 100) break;
+    page += 1;
+  }
+  return all;
+}
+
+function isAutomationComment(body) {
+  // exclude our own upserted comments
+  if (!body) return false;
+  return body.startsWith("**Automated Notes**") || body.startsWith("**Relationships**");
+}
+
+// Convert comments to a clean YAML-friendly multiline string
+function formatCommentsForYaml(comments) {
+  // e.g. "- [2025-08-16] @alice: Fixed env vars"
+  const lines = comments.map(c => {
+    const created = (c.created_at || "").slice(0, 10);
+    const author = c.user?.login ? `@${c.user.login}` : "@unknown";
+    // collapse newlines to avoid YAML ugliness; keep it simple
+    const text = String(c.body || "").replace(/\r?\n+/g, " ").trim();
+    return `- [${created}] ${author}: ${text}`;
+  });
+  return lines.length ? lines.join("\n") : undefined;
+}
+
+
 
 function parseFieldValues(node) {
   const out = {};
@@ -129,6 +164,13 @@ function parseFieldValues(node) {
 
     // Pull issue details
     const ig = await octokit.rest.issues.get({ owner, repo, issue_number: issue.number });
+	// Pull all UI comments (exclude automation comments)
+    const allComments = await listAllIssueComments(octokit, {
+      owner, repo, issue_number: issue.number
+    });
+    const userComments = allComments.filter(c => !isAutomationComment(c.body));
+    const commentsYaml = formatCommentsForYaml(userComments);
+
     const assignees = ig.data.assignees?.map(a => a.login) || [];
     const labels = ig.data.labels?.map(l => typeof l === "string" ? l : l.name).filter(Boolean) || [];
     const milestone = ig.data.milestone?.title || undefined;
@@ -165,6 +207,12 @@ function parseFieldValues(node) {
     // Issue-driven fields
     fm.assignees = assignees;
     fm.labels = labels;
+	if (commentsYaml) {
+     // Store as a block scalar so YAML looks nice
+     // gray-matter will keep formatting if we give it a string with newlines and a trailing newline
+    fm.comments = commentsYaml + "\n";
+    }
+
     if (milestone) fm.milestone = milestone;
 
     // Write file
