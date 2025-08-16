@@ -41,6 +41,7 @@ jobs:
           PROJECT_NUMBER: 1
           STATUS_FIELD_NAME: Status
           TASKS_DIR: tasks
+          TASKS_ARCHIVE_DIR: tasks/archive     # 👈 new
           RELATIONSHIP_HEADER: "Relationships"
           COMMENT_HEADER: "Automated Notes"
         run: node .github/scripts/sync-from-project.js
