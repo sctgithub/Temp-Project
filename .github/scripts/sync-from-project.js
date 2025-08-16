@@ -33,18 +33,35 @@ async function getProjectNode() {
   throw new Error(`Project v2 #${PROJECT_NUMBER} not found for ${OWNER}`);
 }
 
-async function getFields(projectId) {
+async function getProjectWithFields(projectId) {
   const q = `
     query($projectId:ID!){
       node(id:$projectId){
         ... on ProjectV2 {
+          id
+          title
           fields(first:100){
             nodes{
               ... on ProjectV2FieldCommon { id name dataType }
               ... on ProjectV2SingleSelectField { id name dataType options{ id name } }
             }
           }
-          items(first:200){
+        }
+      }
+    }`;
+  const res = await octokit.graphql(q, { projectId });
+  return res.node; // { id, title, fields }
+}
+
+async function getAllProjectItems(projectId) {
+  const items = [];
+  let cursor = null;
+
+  const q = `
+    query($projectId:ID!, $after:String){
+      node(id:$projectId){
+        ... on ProjectV2 {
+          items(first:100, after:$after){
             nodes{
               id
               content { ... on Issue { id number title body url } }
@@ -57,12 +74,23 @@ async function getFields(projectId) {
                 }
               }
             }
+            pageInfo { hasNextPage endCursor }
           }
         }
       }
     }`;
-  return await octokit.graphql(q, { projectId });
+
+  while (true) {
+    const res = await octokit.graphql(q, { projectId, after: cursor });
+    const page = res.node.items;
+    items.push(...page.nodes);
+    if (!page.pageInfo.hasNextPage) break;
+    cursor = page.pageInfo.endCursor;
+  }
+
+  return items;
 }
+
 
 function parseFieldValues(node) {
   const out = {};
@@ -80,7 +108,9 @@ function parseFieldValues(node) {
 (async () => {
   const { owner, repo } = repoContext();
   const project = await getProjectNode();
-  const data = await getFields(project.id);
+  const projectInfo = await getProjectWithFields(project.id);
+  const allItems = await getAllProjectItems(project.id);
+
 
   ensureDir();
 
@@ -92,7 +122,7 @@ function parseFieldValues(node) {
     if (parsed.data.issue) index.set(Number(parsed.data.issue), { file: p, parsed });
   }
 
-  for (const item of data.node.items.nodes) {
+  for (const item of allItems) {
     const issue = item.content;
     if (!issue) continue;
     const fields = parseFieldValues(item);
